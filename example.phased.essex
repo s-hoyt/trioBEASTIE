@@ -1,0 +1,48 @@
+(gene
+   GENE0
+   (site
+      0
+      (genotypes
+         (mother 1 0)
+         (father 0 0)
+         (child 1 0))
+      (counts
+         (mother 3 2)
+         (father 5 0)
+         (child 2 3))
+      (phased 1))
+   (site
+      1
+      (genotypes
+         (mother 1 0)
+         (father 0 0)
+         (child 1 0))
+      (counts
+         (mother 4 1)
+         (father 5 0)
+         (child 1 4))
+      (phased 1)))
+(gene
+   GENE1
+   (site
+      0
+      (genotypes
+         (mother 1 0)
+         (father 0 0)
+         (child 1 0))
+      (counts
+         (mother 3 2)
+         (father 5 0)
+         (child 5 0))
+      (phased 1))
+   (site
+      1
+      (genotypes
+         (mother 0 0)
+         (father 1 1)
+         (child 0 1))
+      (counts
+         (mother 5 0)
+         (father 0 5)
+         (child 5 0))
+      (phased 1)))

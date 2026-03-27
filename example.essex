@@ -1,0 +1,12 @@
+(gene GENE0
+	(site 0 (genotypes (mother 0 1) (father 0 0) (child 0 1))
+		(counts (mother 2 3) (father 5 0) (child 3 2)))
+	(site 1 (genotypes (mother 0 1) (father 0 0) (child 0 1))
+		(counts (mother 1 4) (father 5 0) (child 4 1)))
+)
+(gene GENE1
+	(site 0 (genotypes (mother 0 1) (father 0 0) (child 1 0))
+		(counts (mother 2 3) (father 5 0) (child 0 5)))
+	(site 1 (genotypes (mother 0 0) (father 1 1) (child 1 0))
+		(counts (mother 5 0) (father 0 5) (child 5 0)))
+)
