@@ -1,7 +1,7 @@
 # TrioBEASTIE
 
 TrioBEASTIE is a Bayesian graphical model for detecting allele-specific activity in a familial trio.
-Please cite the publication: (biorxiv link)
+Please cite the publication: https://www.biorxiv.org/content/10.64898/2026.03.28.714974v1
 
 ## Description
 
