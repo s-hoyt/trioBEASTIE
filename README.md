@@ -5,7 +5,7 @@ Please cite the publication: https://www.biorxiv.org/content/10.64898/2026.03.28
 
 ## Description
 
-TrioBEASTIE is a Stan model. Code is provided to run the model using Rstan through python with rpy2. 
+TrioBEASTIE is a Stan model (https://mc-stan.org/). Code is provided to run the model using Rstan through python with rpy2. 
 TrioBEASTIE can be applied to read counts from RNA-seq to detect allele-specific gene expression (ASE) or
 to ATAC-seq to detect allele-specific chromatin accessibility (ASA). The model takes in data in the essex format. 
 In addition to read count data, genotypes are also required. These do not need to be phased, phasing is done using trio information with code developed in the lab.
