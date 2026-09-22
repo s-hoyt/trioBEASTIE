@@ -1,3 +1,9 @@
+//====================================================================
+// PhasedIndividual_no_triplhets.stan
+// (C)2022 W.H. Majoros (bmajoros@alumni.duke.edu) and Stephanie H. Hoyt (stephanie.hoyt@duke.edu)
+// This is OPEN SOURCE software, released under the MIT License
+//====================================================================
+
 functions {
 real likelihood(int[,] count,int[] isPhased,int numSites,real p)
 {

@@ -59,8 +59,8 @@ William H. Majoros: bmajoros@duke.edu
 
 ## License
 
-This is OPEN SOURCE SOFTWARE governed by the Gnu General Public License (GPL) version 3, as described at www.opensource.org.
-Copyright (C)2022 William H. Majoros (bmajoros@alumni.duke.edu) and Stephanie Hoyt (stephanie.hoyt@duke.edu)
+This is OPEN SOURCE SOFTWARE governed by the MIT License.
+Copyright (C)2022 William H. Majoros (bmajoros@alumni.duke.edu) and Stephanie H. Hoyt (stephanie.hoyt@duke.edu)
 
 ## Acknowledgments
 

@@ -1,10 +1,7 @@
 //====================================================================
-// TrioBEAST.stan
-// (C)2022 W.H. Majoros (bmajoros@alumni.duke.edu)
-// This is OPEN SOURCE software, released under the GPL 3.0 license.
-//
-// This version has been refactored to construct the likelihood
-// terms automatically for each requested mode of inheritance.
+// TrioBEASTIE_folded_trihet_null.stan
+// (C)2022 W.H. Majoros (bmajoros@alumni.duke.edu) and Stephanie H. Hoyt (stephanie.hoyt@duke.edu)
+// This is OPEN SOURCE software, released under the MIT License
 //
 // Indexing of arrays:
 //   Individuals: 1=mother, 2=father, 3=child
@@ -30,23 +27,15 @@ real computeElem(int[,,] count,int[,] het,int[] isPhased,int site,
    int MC=count[site,1,MI];
    int FC=count[site,2,FI];
    int CC=count[site,3,CI];
-   if(isPhased[site]) 
-      return 
-           binom_lpmf(MC | MN,het[site,1],MP) // Mother
-         + binom_lpmf(FC | FN,het[site,2],FP) // Father
-         + binom_lpmf(CC | CN,het[site,3],CP);// Child
-   else {
-      return 0;
-   //   real phase1=log(0.5) +
-   //        binom_lpmf(MC | MN,het[site,1],MP) // Mother
-   //      + binom_lpmf(FC | FN,het[site,2],FP) // Father
-   //      + binom_lpmf(CC | CN,het[site,3],CP);// Child
-   //   real phase2=log(0.5) +
-   //        binom_lpmf(MC | MN,het[site,1],1-MP) // Mother
-   //      + binom_lpmf(FC | FN,het[site,2],1-FP) // Father
-   //      + binom_lpmf(CC | CN,het[site,3],1-CP);// Child
-   //   return log_sum_exp(phase1,phase2);
-   }  
+   real phase1=log(0.5) +
+        binom_lpmf(MC | MN,het[site,1],MP) // Mother
+      + binom_lpmf(FC | FN,het[site,2],FP) // Father
+      + binom_lpmf(CC | CN,het[site,3],CP);// Child
+   real phase2=log(0.5) +
+        binom_lpmf(MC | MN,het[site,1],1-MP) // Mother
+      + binom_lpmf(FC | FN,het[site,2],1-FP) // Father
+      + binom_lpmf(CC | CN,het[site,3],1-CP);// Child
+   return log_sum_exp(phase1,phase2); 
 }
 
 int countDenovos(int parent,int[,] V) {
@@ -79,8 +68,12 @@ real getP(int indiv,int[,] V,real p) {
    return p; //one affected copy
 }
 
-real modeLik(int site,int[,] mode,int[,,] count,int[,] het,
-   real p,int[] isPhased) 
+real modeLik(int site,
+            int[,] mode,
+            int[,,] count,
+            int[,] het, 
+            real p,
+            int[] isPhased) 
 {
    // Count some things and initialize variables
    real s=0; 
@@ -91,6 +84,7 @@ real modeLik(int site,int[,] mode,int[,,] count,int[,] het,
    
    // Compute binomial terms
    s+=computeElem(count,het,isPhased,site,mCopy,fCopy,cCopy,mP,fP,cP);
+
    return s;
 }
 
@@ -99,8 +93,8 @@ real likelihoods(int[,] mode,int[,,] count,int[,] het,
    real logRecomb,real logNoRecomb,real p,int N_SITES,int[] isPhased) 
 {
    real array = 0.0;
-      
-   // Priors for recombinations (parents) and de novos (child)
+
+   // Priors for recombinations (parents) and de novos (child)   
    int numDenovos=countDenovos(1,mode)+countDenovos(2,mode);
    real recomb=recombTerm(1,mode,logRecomb,logNoRecomb)+
        recombTerm(2,mode,logRecomb,logNoRecomb);
@@ -132,11 +126,12 @@ transformed data {
    real logAffected=log(probAffected);
    real probRecomb = 0.001;
    real probDenovo = 0.0001;
+   real theta = 1; //set theta to a constant for the null model
 }
 
-parameters 
+parameters  //for the null constant model, we have no parameters
 {
-   real<lower=0.001,upper=1000> theta; // amount of ASE
+   //real<lower=0.001,upper=1000> theta; // amount of ASE
 }
 
 transformed parameters 
@@ -151,10 +146,6 @@ transformed parameters
 
 model 
 {
-   // Priors:
-   log2(theta) ~ normal(0, 1);
-   target += -log(theta * log(2)); // Jacobian
-   
    // Likelihoods:
    target+=likelihoods(mode,count,het,logAffected,logUnaffected,
       logDenovo,logNoDenovo,logRecomb,logNoRecomb,p,N_SITES,isPhased);

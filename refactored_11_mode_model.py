@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 #=========================================================================
-# This is OPEN SOURCE SOFTWARE governed by the Gnu General Public
-# License (GPL) version 3, as described at www.opensource.org.
+# This is OPEN SOURCE SOFTWARE 
+# MIT License
 # Copyright (C)2022 William H. Majoros (bmajoros@alumni.duke.edu)
-# and Copyright (C)2025 Stephanie Hoyt (stephanie.hoyt@duke.edu)
+# and Copyright (C)2025 Stephanie H. Hoyt (stephanie.hoyt@duke.edu)
 #=========================================================================
 import sys
 import ProgramName
