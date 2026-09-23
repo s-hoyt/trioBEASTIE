@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 #=========================================================================
-# This is OPEN SOURCE SOFTWARE 
-# MIT License
+# This is OPEN SOURCE SOFTWARE governed by the Gnu General Public
+# License (GPL) version 3, as described at www.opensource.org.
 # Copyright (C)2022 William H. Majoros (bmajoros@alumni.duke.edu)
-# and Copyright (C)2025 Stephanie H. Hoyt (stephanie.hoyt@duke.edu)
+# and Copyright (C)2025 Stephanie Hoyt (stephanie.hoyt@duke.edu)
 #=========================================================================
+from __future__ import (absolute_import, division, print_function, 
+   unicode_literals, generators, nested_scopes, with_statement)
+from builtins import (bytes, dict, int, list, object, range, str, ascii,
+   chr, hex, input, next, oct, open, pow, round, super, filter, map, zip)
+# The above imports should allow this program to run in both Python 2 and
+# Python 3.  You might need to update your version of module "future".
 import sys
 import ProgramName
 import getopt
@@ -13,44 +19,39 @@ rex=Rex()
 from EssexParser import EssexParser
 import numpy as np
 import subprocess
+#can probbaly clean up some of these imports
 import rpy2
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 from rpy2.robjects import ListVector
 ##these lines only need to be run once to set everything up in the python environment
 # utils = importr('utils')
+# utils.install_packages('bridgesampling')
 # utils.install_packages('rstan')
 # utils.install_packages('codetools')
 ##
+bridgesampling = importr('bridgesampling')
 rstan = importr('rstan')
-from math import exp
+#r.options(mc.cores = parallel::detectCores()) #how to make sure its paralellized in python? try sflist2stanfit
+from math import log, log10, exp
+import os.path
 from scipy.special import logsumexp
 
-MODES_nums = [[0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 1, 0],
-              [0, 0, 0, 0, 0, 1],
-              [0, 1, 0, 0, 0, 0],
-              [0, 1, 0, 0, 1, 0],
-              [0, 0, 0, 1, 0, 0],
-              [0, 0, 0, 1, 0, 1],
-              [1, 0, 0, 0, 1, 0],
-              [1, 0, 0, 0, 0, 0],
-              [0, 0, 1, 0, 0, 1],
-              [0, 0, 1, 0, 0, 0]]
+MODES_nums = {1: [0, 0, 0, 0, 0, 0], #Null
+              2: [0, 0, 0, 0, 1, 0], #Denovo
+              3: [0, 0, 0, 0, 0, 1], #Denovo
+              4: [0, 1, 0, 0, 0, 0], #Mother affected
+              6: [0, 0, 0, 1, 0, 0], #Father affected
+              8: [1, 0, 0, 0, 1, 0], #Mother affected, child inherits
+              10: [0, 0, 1, 0, 0, 1]} #Father affected, child inherits
 
-MODES = ["00 00 00 = all unaffected",
-            "00 00 10 = child has a de novo in the causal variant",
-            "00 00 01 = child has a de novo in the causal variant",
-            "01 00 00 = mother affected, child doesn't inherit",
-            "01 00 10 = mother affected and recombines, child inherits",
-            "00 01 00 = father affected, child doesn't inherit",
-            "00 01 01 = father affected and recombines, child inherits",
-            "10 00 10 = mother affected, child inherits",
-            "10 00 00 = mother affected and recombines, child doesn't inherit",
-            "00 10 01 = father affected, child inherits",
-            "00 10 00 = father affected and recombines, child doesn't inherit"]
-
-NUM_MODES=11
+MODES = {1: "00 00 00 = all unaffected",
+         2: "00 00 10 = child has a de novo in the causal variant",
+         3: "00 00 01 = child has a de novo in the causal variant",
+         4: "01 00 00 = mother affected, child doesn't inherit",
+         6: "00 01 00 = father affected, child doesn't inherit",
+         8: "10 00 10 = mother affected, child inherits",
+         10: "00 10 01 = father affected, child inherits"}
 #=========================================================================
 class Site:
     def __init__(self,ID,phased):
@@ -99,7 +100,7 @@ def digit(c):
 
 def initModes():
     array3D=[] # indexed as: [mode,indiv,haplotype]
-    for i in range(NUM_MODES):
+    for i in MODES:
         modeString=MODES[i]
         # "00 00 10 = child has a de novo in the causal variant"
         rec=[] # indexed as: [indiv,haplotype]
@@ -143,7 +144,7 @@ def getPhasingR(gene, numSites):
     return phasingR
 
 def runNull(hets, counts, phasing, model, numSites, probAffected):
-    nullMode = robjects.r.matrix(robjects.IntVector(MODES_nums[0]), ncol = 2)
+    nullMode = robjects.r.matrix(robjects.IntVector(MODES_nums[1]), ncol = 2)
     data = {"N_SITES": numSites, 
             "mode": nullMode, 
             "het": hets,
@@ -160,11 +161,12 @@ def runNull(hets, counts, phasing, model, numSites, probAffected):
     return null_posterior
 
 def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, null_posterior, outFile):
-    theta_values = {0: 1.0} #initialize these w/ fixed point nulls and results from Null model
-    theta_var_values = {0: 0.0}
-    numerator_values = {0: null_posterior}
-    rhat_values = {0: "NA"}
-    for i in range(1, NUM_MODES):
+    theta_values = {1: 1.0} #initialize these w/ fixed point nulls and results from Null model
+    theta_var_values = {1: 0.0}
+    numerator_values = {1: null_posterior}
+    rhat_values = {1: "NA"}
+    for i in MODES_nums:
+        if i == 1: continue #null mode done in another function
         altMode = robjects.r.matrix(robjects.IntVector(MODES_nums[i]), ncol = 2, byrow = True)
         data = {"N_SITES": numSites, 
                 "mode": altMode, 
@@ -178,21 +180,15 @@ def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, nul
                                 iter = numSamples,
                                 init = 1)
         #check Rhat values
-        num_params = len(robjects.r.names(fit))
-        rhat_col_num = 9
-        #number of params(rows - can change as we add/remove things from gen quant) * column number of rhat (9)
-        rhat = robjects.r.summary(fit)[0][num_params*rhat_col_num] 
+        rhat = robjects.r.summary(fit)[0][81]
         rhat_values[i] = rhat
         if rhat > 1.05:
             with open(outFile, "a") as f:
                 f.write("ERROR: DID NOT CONVERGE !!! MODE " + str(i+1) + "\n")
         #save results for this model
-        #for theta, want to index into last column (avg'd over all chains)
-        theta_col_num = 4
-        theta_values[i] = rstan.get_posterior_mean(fit)[num_params * theta_col_num]
+        theta_values[i] = rstan.get_posterior_mean(fit)[36] #indexed into the last column, avg'd over all chains
         theta_var_values[i] = robjects.r.var(rstan.extract(fit, "theta")[0])[0]
-        # as long as num is the first thing in the gen quant block, and none of the other params change, 7 is correct index. otherwise...
-        numerator = robjects.r.summary(fit)[0][7] #getting numerator aka posterior (likelihood * priors).
+        numerator = robjects.r.summary(fit)[0][7] #new 9/29/25 - getting numerator aka posterior (likelihood * priors). could also access with rstan.get_posterior_mean(fit)
         numerator_values[i] = numerator
     return(theta_values, theta_var_values, numerator_values, rhat_values)
         
@@ -255,7 +251,8 @@ while(True):
     if(gene is None): continue
     if not (continuation and geneIndex == firstIndex): #don't print the header for the first gene after continuing ; already printed
         with open(outFile, "a") as f:
-            f.write(gene.ID + "\n")
+            #f.write("GENE" + str(geneIndex) + "\n")
+            f.write(gene.ID + "\n") #this line matters for real data specifically; simulated data geneIDs match indices
 
     hetsR = getHetsR(gene)
     countsR = getCountsR(gene, len(gene.sites))
@@ -281,7 +278,7 @@ while(True):
     #get posterior probs using bayes thm
     posterior_probs = {}
     denom = logsumexp(list(numerator_values.values()))
-    for i in range(NUM_MODES):
+    for i in MODES_nums:
         posterior_probs[i] = exp(numerator_values[i] - denom)
     #sort based on which are most likely, relative to null
     sorted_posterior = dict(sorted(posterior_probs.items(), key=lambda item: item[1], reverse = True))
@@ -291,7 +288,7 @@ while(True):
         this_rhat = rhat_values[m] if type(rhat_values[m]) is str else str(round(rhat_values[m], 3))
         with open(outFile, "a") as f:
             f.write("\t" + str(round(posterior_probs[m] * 100, 2)) + "%" + "\t" +\
-                        "MODE " + str(m+1) + "\t" +\
+                        "MODE " + str(m) + "\t" +\
                         str(round(theta_values[m], 2)) + "\t" +\
                         str(round(theta_var_values[m], 3)) + "\t" + \
                         this_rhat + "\t" +\

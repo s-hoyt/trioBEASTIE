@@ -23,7 +23,7 @@ from rpy2.robjects import ListVector
 # utils.install_packages('codetools')
 ##
 rstan = importr('rstan')
-from math import exp
+from math import exp, log2
 from scipy.special import logsumexp
 
 MODES_nums = [[0, 0, 0, 0, 0, 0],
@@ -164,6 +164,7 @@ def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, nul
     theta_var_values = {0: 0.0}
     numerator_values = {0: null_posterior}
     rhat_values = {0: "NA"}
+    delta_post_values = {0: "NA"}
     for i in range(1, NUM_MODES):
         altMode = robjects.r.matrix(robjects.IntVector(MODES_nums[i]), ncol = 2, byrow = True)
         data = {"N_SITES": numSites, 
@@ -194,7 +195,11 @@ def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, nul
         # as long as num is the first thing in the gen quant block, and none of the other params change, 7 is correct index. otherwise...
         numerator = robjects.r.summary(fit)[0][7] #getting numerator aka posterior (likelihood * priors).
         numerator_values[i] = numerator
-    return(theta_values, theta_var_values, numerator_values, rhat_values)
+        #then also get the posterior mean of delta (direction) being positive
+        #   if 7 is the index of numerator, then 8 is the index of the delta_pos variable
+        delta_pos = robjects.r.summary(fit)[0][8]
+        delta_post_values[i] = delta_pos          
+    return(theta_values, theta_var_values, numerator_values, rhat_values, delta_post_values)
         
 #=========================================================================
 # main()
@@ -242,7 +247,7 @@ parser=EssexParser(inputFile)
 
 if not continuation:
     with open(outFile, "w") as f:
-        f.write("Gene\tposteriorProb\tMode\ttheta\ttheta_var\tRhat\tModeDescrip\n")
+        f.write("Gene\tposteriorProb\tMode\ttheta\tlog2(theta)\ttheta_var\tP(delta = positive)\tRhat\tModeDescrip\n")
 while(True):
     elem=parser.nextElem()
     if(elem is None): break
@@ -269,13 +274,14 @@ while(True):
     (theta_values, 
         theta_var_values,
         numerator_values, 
-        rhat_values) = runAlt(hetsR, countsR, phasingR,
-                                alt_m,
-                                len(gene.sites),
-                                probAffected,
-                                numSamples,
-                                null_posterior,
-                                outFile)
+        rhat_values,
+        delta_post_values) = runAlt(hetsR, countsR, phasingR,
+                                    alt_m,
+                                    len(gene.sites),
+                                    probAffected,
+                                    numSamples,
+                                    null_posterior,
+                                    outFile)
     
     
     #get posterior probs using bayes thm
@@ -289,11 +295,14 @@ while(True):
     for i in range(len(sorted_posterior)):
         m = list(sorted_posterior.keys())[i]
         this_rhat = rhat_values[m] if type(rhat_values[m]) is str else str(round(rhat_values[m], 3))
+        this_delt = delta_post_values[m] if type(delta_post_values[m]) is str else str(round(delta_post_values[m], 3))
         with open(outFile, "a") as f:
             f.write("\t" + str(round(posterior_probs[m] * 100, 2)) + "%" + "\t" +\
                         "MODE " + str(m+1) + "\t" +\
                         str(round(theta_values[m], 2)) + "\t" +\
+                        str(round(log2(theta_values[m]), 2)) + "\t" +\
                         str(round(theta_var_values[m], 3)) + "\t" + \
+                        this_delt + "\t" + \
                         this_rhat + "\t" +\
                         MODES[m] + "\n")
     geneIndex+=1
