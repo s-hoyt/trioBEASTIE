@@ -18,6 +18,8 @@ In addition to read count data, genotypes are also required. These do not need t
 * requires python packages numpy, scipy, and rpy2 (which requires htslib, available from anaconda)
 * requires lab developed python libraries Rex and EssexParser available from https://github.com/bmajoros/python
 * to phase essex files, use lab developed phaser: https://github.com/bmajoros/TrioBEAST/blob/main/phase-trio.C
+   * Examples of essex files (original and phased) are provided in this repo
+   * In this example file, GENE0 is simulated to show no ASE in any individual, GENE1 is simulated to show the father and child affected, and GENE2 is simulated to show ASE in the father only, however this is not visible without making use of the triple heterozygous site (with the folded model). 
 
 ### Installing
 
@@ -40,7 +42,7 @@ python
 ```
 * Then run the model
 ```
-AFFECTED=0.04, NUM_MCMC=5000, NUM_GENES=4999; ./refactored_11_mode_model.py Refactored_constant_singleprior_no_triplehets input.phased.essex $NUM_MCMC 0-$NUM_GENES $AFFECTED trio_beastie.out
+PROBAFFECTED=0.04, PROBRECOMB=0.01, PROBDENOVO=0.001, NUM_MCMC=5000, NUM_GENES=4999; ./refactored_11_mode_model.py Refactored_constant_singleprior_no_triplehets input.phased.essex $NUM_MCMC 0-$NUM_GENES $PROBAFFECTED $PROBRECOMB $PROBDENOVO trio_beastie.out
 ```
 
 ## Help
