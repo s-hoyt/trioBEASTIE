@@ -1,16 +1,10 @@
 #!/usr/bin/env python
 #=========================================================================
-# This is OPEN SOURCE SOFTWARE governed by the Gnu General Public
-# License (GPL) version 3, as described at www.opensource.org.
+# This is OPEN SOURCE SOFTWARE 
+# MIT License
 # Copyright (C)2022 William H. Majoros (bmajoros@alumni.duke.edu)
-# and Copyright (C)2025 Stephanie Hoyt (stephanie.hoyt@duke.edu)
+# and Copyright (C)2025 Stephanie H. Hoyt (stephanie.hoyt@duke.edu)
 #=========================================================================
-from __future__ import (absolute_import, division, print_function, 
-   unicode_literals, generators, nested_scopes, with_statement)
-from builtins import (bytes, dict, int, list, object, range, str, ascii,
-   chr, hex, input, next, oct, open, pow, round, super, filter, map, zip)
-# The above imports should allow this program to run in both Python 2 and
-# Python 3.  You might need to update your version of module "future".
 import sys
 import ProgramName
 import getopt
@@ -19,22 +13,17 @@ rex=Rex()
 from EssexParser import EssexParser
 import numpy as np
 import subprocess
-#can probbaly clean up some of these imports
 import rpy2
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
 from rpy2.robjects import ListVector
 ##these lines only need to be run once to set everything up in the python environment
 # utils = importr('utils')
-# utils.install_packages('bridgesampling')
 # utils.install_packages('rstan')
 # utils.install_packages('codetools')
 ##
-bridgesampling = importr('bridgesampling')
 rstan = importr('rstan')
-#r.options(mc.cores = parallel::detectCores()) #how to make sure its paralellized in python? try sflist2stanfit
-from math import log, log10, exp
-import os.path
+from math import exp
 from scipy.special import logsumexp
 
 MODES_nums = {1: [0, 0, 0, 0, 0, 0], #Null
@@ -143,14 +132,16 @@ def getPhasingR(gene, numSites):
     phasingR = robjects.r.array(robjects.BoolVector(phasing), dim = numSites) 
     return phasingR
 
-def runNull(hets, counts, phasing, model, numSites, probAffected):
+def runNull(hets, counts, phasing, model, numSites, probAffected, probRecomb, probDenovo):
     nullMode = robjects.r.matrix(robjects.IntVector(MODES_nums[1]), ncol = 2)
     data = {"N_SITES": numSites, 
             "mode": nullMode, 
             "het": hets,
             "count": counts, 
             "isPhased": phasing,
-            "probAffected": probAffected}
+            "probAffected": probAffected,
+            "probRecomb": probRecomb,
+            "probDenovo": probDenovo}
     named_list = ListVector(data)
     fitNull = rstan.sampling(object = model, 
                                 data = named_list,
@@ -160,7 +151,7 @@ def runNull(hets, counts, phasing, model, numSites, probAffected):
     null_posterior = rstan.get_posterior_mean(fitNull)[6] #accessed by index of numerator here instead of by name as in Rscript
     return null_posterior
 
-def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, null_posterior, outFile):
+def runAlt(hets, counts, phasing, model, numSites, probAffected, probRecomb, probDenovo, numSamples, null_posterior, outFile):
     theta_values = {1: 1.0} #initialize these w/ fixed point nulls and results from Null model
     theta_var_values = {1: 0.0}
     numerator_values = {1: null_posterior}
@@ -173,7 +164,9 @@ def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, nul
                 "het": hets,
                 "count": counts, 
                 "isPhased": phasing,
-                "probAffected": probAffected}
+                "probAffected": probAffected,
+                "probRecomb": probRecomb,
+                "probDenovo": probDenovo}
         named_list = ListVector(data)
         fit = rstan.sampling(object = model, 
                                 data = named_list,
@@ -197,12 +190,14 @@ def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, nul
 #=========================================================================
 
 (options,args) = getopt.getopt(sys.argv[1:], "c:")
-if(len(args)!=6):
-    exit(ProgramName.get()+"[-c continue] <model> <input.essex> <#MCMC-samples> <firstGene-lastGene> <P(affected)> <outFile>\n  gene range is zero-based and inclusive\n")
-(model,inputFile,numSamples,geneRange,probAffected,outFile)=args
+if(len(args)!=8):
+    exit(ProgramName.get()+"[-c continue] <model> <input.essex> <#MCMC-samples> <firstGene-lastGene> <P(affected)> <P(recomb)> <P(denovo)> <outFile>\n  gene range is zero-based and inclusive\n")
+(model,inputFile,numSamples,geneRange,probAffected,probRecomb,probDenovo,outFile)=args
 
 numSamples = int(numSamples)
 probAffected = float(probAffected)
+probRecomb = float(probRecomb)
+probDenovo = float(probDenovo)
 
 if(not rex.find(r"(\d+)-(\d+)",geneRange)):
     exit(geneRange+": specify range of gene: first-last")
@@ -261,7 +256,9 @@ while(True):
     null_posterior = runNull(hetsR, countsR, phasingR, 
                                 null_m,
                                 len(gene.sites),
-                                probAffected)
+                                probAffected, 
+                                probRecomb,
+                                probDenovo)
         
     (theta_values, 
         theta_var_values,
@@ -269,7 +266,9 @@ while(True):
         rhat_values) = runAlt(hetsR, countsR, phasingR,
                                 alt_m,
                                 len(gene.sites),
-                                probAffected,
+                                probAffected, 
+                                probRecomb,
+                                probDenovo,
                                 numSamples,
                                 null_posterior,
                                 outFile)

@@ -127,13 +127,13 @@ data {
    int<lower=0,upper=1> het[N_SITES,3]; // [site,indvidual]
    int<lower=0> count[N_SITES,3,2]; // [site,individual,haplotype]
    int<lower=0,upper=1> isPhased[N_SITES]; // triple hets are unphased
-   real<lower=0,upper=1> probAffected; // prior prob of 1 parent copy affected
+   real<lower=0,upper=1> probAffected; // fixed probability of 1 parent copy affected
+   real<lower=0,upper=1> probRecomb; // fixed probability of recombination. default 0.001
+   real<lower=0,upper=1> probDenovo; // fixed probability of denovo in child. default 0.0001
 }
 
 transformed data {
    real logAffected=log(probAffected);
-   real probRecomb = 0.001;
-   real probDenovo = 0.0001;
    real theta = 1; //set theta to a constant for the null model
 }
 

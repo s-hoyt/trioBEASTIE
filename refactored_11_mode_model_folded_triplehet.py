@@ -142,14 +142,16 @@ def getPhasingR(gene, numSites):
     phasingR = robjects.r.array(robjects.BoolVector(phasing), dim = numSites) 
     return phasingR
 
-def runNull(hets, counts, phasing, model, numSites, probAffected):
+def runNull(hets, counts, phasing, model, numSites, probAffected, probRecomb, probDenovo):
     nullMode = robjects.r.matrix(robjects.IntVector(MODES_nums[0]), ncol = 2)
     data = {"N_SITES": numSites, 
             "mode": nullMode, 
             "het": hets,
             "count": counts, 
             "isPhased": phasing,
-            "probAffected": probAffected}
+            "probAffected": probAffected,
+            "probRecomb": probRecomb,
+            "probDenovo": probDenovo}
     named_list = ListVector(data)
     fitNull = rstan.sampling(object = model, 
                                 data = named_list,
@@ -159,7 +161,7 @@ def runNull(hets, counts, phasing, model, numSites, probAffected):
     null_posterior = rstan.get_posterior_mean(fitNull)[6] #accessed by index of numerator here instead of by name as in Rscript
     return null_posterior
 
-def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, null_posterior, outFile):
+def runAlt(hets, counts, phasing, model, numSites, probAffected, probRecomb, probDenovo, numSamples, null_posterior, outFile):
     theta_values = {0: 1.0} #initialize these w/ fixed point nulls and results from Null model
     theta_var_values = {0: 0.0}
     numerator_values = {0: null_posterior}
@@ -172,7 +174,9 @@ def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, nul
                 "het": hets,
                 "count": counts, 
                 "isPhased": phasing,
-                "probAffected": probAffected}
+                "probAffected": probAffected,
+                "probRecomb": probRecomb,
+                "probDenovo": probDenovo}
         named_list = ListVector(data)
         fit = rstan.sampling(object = model, 
                                 data = named_list,
@@ -206,12 +210,14 @@ def runAlt(hets, counts, phasing, model, numSites, probAffected, numSamples, nul
 #=========================================================================
 
 (options,args) = getopt.getopt(sys.argv[1:], "c:")
-if(len(args)!=6):
-    exit(ProgramName.get()+"[-c continue] <model> <input.essex> <#MCMC-samples> <firstGene-lastGene> <P(affected)> <outFile>\n  gene range is zero-based and inclusive\n")
-(model,inputFile,numSamples,geneRange,probAffected,outFile)=args
+if(len(args)!=8):
+    exit(ProgramName.get()+"[-c continue] <model> <input.essex> <#MCMC-samples> <firstGene-lastGene> <P(affected)> <P(recomb)> <P(denovo)> <outFile>\n  gene range is zero-based and inclusive\n")
+(model,inputFile,numSamples,geneRange,probAffected,probRecomb,probDenovo,outFile)=args
 
 numSamples = int(numSamples)
 probAffected = float(probAffected)
+probRecomb = float(probRecomb)
+probDenovo = float(probDenovo)
 
 if(not rex.find(r"(\d+)-(\d+)",geneRange)):
     exit(geneRange+": specify range of gene: first-last")
@@ -269,7 +275,9 @@ while(True):
     null_posterior = runNull(hetsR, countsR, phasingR, 
                                 null_m,
                                 len(gene.sites),
-                                probAffected)
+                                probAffected, 
+                                probRecomb,
+                                probDenovo)
         
     (theta_values, 
         theta_var_values,
@@ -278,7 +286,9 @@ while(True):
         delta_post_values) = runAlt(hetsR, countsR, phasingR,
                                     alt_m,
                                     len(gene.sites),
-                                    probAffected,
+                                    probAffected, 
+                                    probRecomb,
+                                    probDenovo,
                                     numSamples,
                                     null_posterior,
                                     outFile)
