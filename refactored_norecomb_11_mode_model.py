@@ -173,15 +173,21 @@ def runAlt(hets, counts, phasing, model, numSites, probAffected, probRecomb, pro
                                 iter = numSamples,
                                 init = 1)
         #check Rhat values
-        rhat = robjects.r.summary(fit)[0][81]
+        num_params = len(robjects.r.names(fit))
+        rhat_col_num = 9
+        #number of params(rows - can change as we add/remove things from gen quant) * column number of rhat (9)
+        rhat = robjects.r.summary(fit)[0][num_params*rhat_col_num] 
         rhat_values[i] = rhat
         if rhat > 1.05:
             with open(outFile, "a") as f:
                 f.write("ERROR: DID NOT CONVERGE !!! MODE " + str(i+1) + "\n")
         #save results for this model
-        theta_values[i] = rstan.get_posterior_mean(fit)[36] #indexed into the last column, avg'd over all chains
+        #for theta, want to index into last column (avg'd over all chains)
+        theta_col_num = 4
+        theta_values[i] = rstan.get_posterior_mean(fit)[num_params * theta_col_num]
         theta_var_values[i] = robjects.r.var(rstan.extract(fit, "theta")[0])[0]
-        numerator = robjects.r.summary(fit)[0][7] #new 9/29/25 - getting numerator aka posterior (likelihood * priors). could also access with rstan.get_posterior_mean(fit)
+        # as long as num is the first thing in the gen quant block, and none of the other params change, 7 is correct index. otherwise...
+        numerator = robjects.r.summary(fit)[0][7] #getting numerator aka posterior (likelihood * priors).
         numerator_values[i] = numerator
     return(theta_values, theta_var_values, numerator_values, rhat_values)
         
@@ -246,8 +252,7 @@ while(True):
     if(gene is None): continue
     if not (continuation and geneIndex == firstIndex): #don't print the header for the first gene after continuing ; already printed
         with open(outFile, "a") as f:
-            #f.write("GENE" + str(geneIndex) + "\n")
-            f.write(gene.ID + "\n") #this line matters for real data specifically; simulated data geneIDs match indices
+            f.write(gene.ID + "\n")
 
     hetsR = getHetsR(gene)
     countsR = getCountsR(gene, len(gene.sites))
