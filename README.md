@@ -8,7 +8,7 @@ Please cite the publication: https://www.biorxiv.org/content/10.64898/2026.03.28
 TrioBEASTIE is a Stan model (https://mc-stan.org/). Code is provided to run the model using Rstan through python with rpy2. 
 TrioBEASTIE can be applied to read counts from RNA-seq to detect allele-specific gene expression (ASE) or
 to ATAC-seq to detect allele-specific chromatin accessibility (ASA). The model takes in data in the essex format. 
-In addition to read count data, genotypes are also required. These do not need to be phased, phasing is done using trio information with code developed in the lab.
+In addition to read count data, genotypes are also required. These do not need to be phased, phasing is done using trio information with code developed in the lab and provided in this repo (phase-trio).
 
 ## Getting Started
 
@@ -18,7 +18,7 @@ In addition to read count data, genotypes are also required. These do not need t
 * requires python packages numpy, scipy, and rpy2 (which requires htslib, available from anaconda)
     * ```conda create --name rpy2 conda-forge::python numpy scipy rpy2 htslib```
 * requires lab developed python libraries Rex and EssexParser available from https://github.com/bmajoros/python
-* to phase essex files, use lab developed phaser: https://github.com/bmajoros/TrioBEAST/blob/main/phase-trio.C
+* to phase essex files, use lab developed phaser: ```phase-trio```
    * Examples of essex files (original and phased) are provided in this repo
    * In this example file, GENE0 is simulated to show no ASE in any individual, GENE1 is simulated to show the father and child affected, and GENE2 is simulated to show ASE in the father only, however this is not visible without making use of the triple heterozygous site (with the folded model). 
 
