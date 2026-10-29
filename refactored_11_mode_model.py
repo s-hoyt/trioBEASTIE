@@ -241,6 +241,8 @@ modeArray=initModes()
 null_m = rstan.stan_model(model + "_null.stan")
 alt_m = rstan.stan_model(model + "_alt.stan")
 
+print("COMPILED MODELS")
+
 # Process each gene
 #geneIndex refers to position in essex file, not the labeled GENEID
 geneIndex=0

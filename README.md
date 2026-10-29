@@ -21,6 +21,7 @@ In addition to read count data, genotypes are also required. These do not need t
 * to phase essex files, use lab developed phaser: ```phase-trio```
    * Examples of essex files (original and phased) are provided in this repo
    * In this example file, GENE0 is simulated to show no ASE in any individual, GENE1 is simulated to show the father and child affected, and GENE2 is simulated to show ASE in the father only, however this is not visible without making use of the triple heterozygous site (with the folded model). 
+   * If getting the error ```error while loading shared libraries: libgsl.so.25: cannot open shared object file: No such file or directory```, check version of gsl installed; gsl=2.4 has worked for me.
 
 ### Installing
 
